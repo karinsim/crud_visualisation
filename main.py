@@ -1,10 +1,12 @@
 import streamlit as st
 from streamlit_echarts import st_echarts
 import pandas as pd
+import numpy as np
 import altair as alt
 from supabase import create_client, Client
 from utils import *
 from plot_data import *
+
 
 st.set_page_config(layout="wide",
                    page_title='KPI Dashboard 📈',
@@ -53,25 +55,29 @@ def select_circle():
 
 
 def dashboard(circle_id):
-    st.header("Time series of chosen KPIs")
-    kpis_ori = query_kpi(circle_id).data
-    names = [kpi['Name'] for kpi in kpis_ori]
+    st.header(":chart_with_upwards_trend: Time series of chosen KPIs")
+    st.markdown(f"""<p class="small-font">&#128315; Filters</p>""",
+                unsafe_allow_html=True)
+    with st.expander("Click to expand"):
+        kpis_ori = query_kpi(circle_id).data
+        names = [kpi['Name'] for kpi in kpis_ori]
 
-    chosen = st.multiselect("Choose KPIs for line chart", 
-                            names, default=names)
-    kpis = []
+        chosen = st.multiselect("Choose KPIs for line chart", 
+                                names, default=names)
+        kpis = []
 
-    for kpi in kpis_ori:
-        if kpi["Name"] in chosen:
-            kpis.append(kpi)
+        for kpi in kpis_ori:
+            if kpi["Name"] in chosen:
+                kpis.append(kpi)
 
-    data = generate_linechart(kpis[0]["id"], (2023,1), (2023,8), alltime=True)
+        data = generate_linechart(kpis[0]["id"], (2023,1), (2023,8), alltime=True)
 
-    start = st.selectbox(label = "time from",
-                          options = data["Time"])
-    ind = data.index[data["Time"] == start]
-    end = st.selectbox(label = "time to",
-                          options = data[data.index > ind[0]]["Time"])
+        start = st.selectbox(label = "time from",
+                            options = data["Time"], index=0)
+        ind = data.index[data["Time"] == start]
+        options_to = list(data[data.index > ind[0]]["Time"])
+        end = st.selectbox(label = "time to", options = options_to,
+                            index=len(options_to)-1)
     
     show_table = st.checkbox("Show table")
     
@@ -126,20 +132,27 @@ def dashboard(circle_id):
             if show_table:
                 st.dataframe(data.loc[:, ["Time", "Value"]], hide_index=True)
 
-
     st.divider()
-    st.header("Current growth rate of all KPIs")
 
-    bar = generate_barchart(kpis_ori)
-    st.bar_chart(bar, x="KPI", y="growth rate")
+    morecol1, morecol2 = st.columns([0.5, 0.5], gap="medium")
+    with morecol1:
+        st.header(":bar_chart: Current growth rate of all KPIs")
 
+        bar = generate_barchart(kpis_ori)
+        st.bar_chart(bar, x="KPI", y="growth rate")
 
-    st.divider()
-    st.header("Annual growth rate of all KPIs")
-    st.write("to be implemented")
-    # years = st.multiselect("Choose years", [2022, 2023], default=[2022, 2023])
-    # multibar = generate_multibarchart(kpis, years=years)
-    # st.bar_chart(multibar, x="KPI", y="annual growth", color="years")
+    with morecol2:
+        st.header(":bar_chart: Annual growth rate of all KPIs")
+        df = generate_groupedbarchart(kpis_ori)
+
+        grouped_barchart = alt.Chart(df).mark_bar(size=30).encode(
+                column=alt.Column("KPI"),
+                x=alt.X("year"),
+                y=alt.Y("annual growth"),
+                color=alt.Color("year", scale=alt.Scale(
+                      range=['#EA98D2', '#659CCA']))).properties(width=150)
+
+        st.altair_chart(grouped_barchart)
 
 
 cid = select_circle()

@@ -1,13 +1,5 @@
-# from dotenv import load_dotenv
-# load_dotenv()
-# import os
-# from supabase import create_client, Client
-
 from utils import *
-
-# url: str = os.environ.get("SUPABASE_URL")
-# key: str = os.environ.get("SUPABASE_KEY")
-# supabase: Client = create_client(url, key)
+import numpy as np
 
 
 def generate_xlabel(years, months):
@@ -61,19 +53,33 @@ def generate_barchart(kpis):
 
     for kpi in kpis:
         names.append(kpi["Name"])
-        _, curr_gr = get_growth_rate(kpi["id"], mode="current")
+        _, curr_gr = current_growth_rate(kpi["id"])
         curr_growth.append(curr_gr)
     
     return pd.DataFrame({"KPI": names, "growth rate": curr_growth})
     
 
-def generate_multibarchart(kpis, years):
-    
-    names = []
+def generate_groupedbarchart(kpis):
+
+    yearslist = []
     for kpi in kpis:
-        names.append(kpi["Name"])
-
-    vals = annual_average_growth(kpis, years=years)
-
-    return pd.DataFrame({"KPI": names, "annual growth": vals, "years": years})
+        yearslist.append(set(get_years(kpi["id"])))
+    # to take into account the possibility of different KPIs having
+    # different years in record - only take the years where all
+    # historical record of KPIs exist
+    common_years = set.intersection(*yearslist)
+    possible_years = np.arange(min(common_years)+1, max(common_years)+1)
     
+    name, annual_growth = [], []
+    year = [str(y) for y in possible_years] * len(kpis)
+    for kpi in kpis:
+        growth = annual_average_growth(
+                    kpi["id"], years= possible_years)
+        name.extend([kpi["Name"]] * len(growth))
+        annual_growth.extend(growth)
+    
+    df = pd.DataFrame(name, columns=["KPI"])
+    df["annual growth"] = annual_growth
+    df["year"] = year
+
+    return df

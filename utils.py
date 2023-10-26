@@ -51,37 +51,34 @@ def get_pandas_history(kpi_id, ascending=True):
                         ascending=ascending, ignore_index=True)
 
 
-def get_growth_rate(kpi_id, mode="current", current_year=datetime.datetime.now().year):
+def get_years(kpi_id):
+    """
+    Return the second minimum (second earliest) and maximum (latest) years
+    where record exists in the database for a given KPI
+    Use case: grouped bar chart to compare annual growths across KPIs
+    """
+    hist = supabase.table("KpiHistory").select("PeriodYear").eq("KpiId", 
+                                                  str(kpi_id)).execute()
+    
+    return sorted(list(pd.DataFrame(hist.data)["PeriodYear"].unique()))
+
+
+def current_growth_rate(kpi_id):
     """
     Return the annual/current growth rate of the specified KPI
     Utility function
 
     Growth rate is defined as (current - previous) / previous * 100;
 
-    if mode == current:
-        the current value is the most recent entry in the history table, and the
-        previous value is the value preceding the current value
+    the current value is the most recent entry in the history table, and the
+    previous value is the value preceding the current value
 
-    if mode == annual:
-        the current and previous values are the annual averages of the current and the preceding years
     """
 
     history = get_pandas_history(kpi_id, ascending=False).dropna().reset_index(drop=True)
 
-    if mode == "current":
-        current_val = history.loc[0]["Value"]
-        previous_val = history.loc[1]["Value"]
-    
-    elif mode == "annual":
-        previous_year = history.iloc[history.loc[
-            history["PeriodYear"]==current_year].index[-1]+1]["PeriodYear"]
-        tmp = history.loc[history["PeriodYear"] == current_year]
-        current_val = tmp["Value"].mean()
-        tmp = history.loc[history["PeriodYear"] == previous_year]
-        previous_val = tmp["Value"].mean()
-    
-    else:
-        raise RuntimeError("Unrecognised mode")
+    current_val = history.loc[0]["Value"]
+    previous_val = history.loc[1]["Value"]
 
     avg_growth = (current_val - previous_val) / previous_val * 100
 
@@ -94,22 +91,34 @@ def key_stats(kpi_id):
     Use case: stats (number) box
     """
 
-    return get_growth_rate(kpi_id)
+    return current_growth_rate(kpi_id)
 
 
-def annual_average_growth(kpi_id, years=[2021, 2022]):
+def annual_average_growth(kpi_id, years=[2022, 2023]):
     ### Not applicable unless we use synthetic data ###
     """
-    Return annual (average) growth for all KPIs for the most recent year
-    Use case: bar chart
+    Return annual (average) growth for a given KPI for the years given
+    Use case: grouped bar chart
 
-    Parameter: kpis: list of dictionaries returned by user_choice
-               years: list of years to compare
+    the current and previous values are the annual averages of the current 
+    and the preceding years
     """
 
-    for year in years:
-        avg_growth = []
-        _, avg = get_growth_rate(kpi_id, mode="annual", current_year=year)
-        avg_growth.append(avg)
+    history = get_pandas_history(kpi_id, ascending=False
+                                 ).dropna().reset_index(drop=True)
+    all_years = get_years(kpi_id)
 
-    return avg_growth
+    previous_year = all_years[all_years.index(years[0])-1]
+    previous_val = history.loc[history["PeriodYear"] == 
+                                   previous_year]["Value"].mean()
+
+    growth = []
+    for year in years:
+        current_year = year
+        current_val = history.loc[history["PeriodYear"] == 
+                                  current_year]["Value"].mean()
+        growth.append((current_val - previous_val) / previous_val * 100)
+        previous_year = current_year
+        previous_val = current_val
+
+    return growth
