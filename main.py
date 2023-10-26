@@ -6,11 +6,21 @@ from supabase import create_client, Client
 from utils import *
 from plot_data import *
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide",
+                   page_title='KPI Dashboard 📈',
+                   page_icon='📊',
+                   initial_sidebar_state='collapsed')
 st.markdown("""
             <style>
             .big-font {
-                font-size:100px !important;
+                font-size:85px !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+st.markdown("""
+            <style>
+            .small-font {
+                font-size:25px !important;
             }
             </style>
             """, unsafe_allow_html=True)
@@ -48,7 +58,7 @@ def dashboard(circle_id):
     names = [kpi['Name'] for kpi in kpis_ori]
 
     chosen = st.multiselect("Choose KPIs for line chart", 
-                            names, default=names[0])
+                            names, default=names)
     kpis = []
 
     for kpi in kpis_ori:
@@ -72,12 +82,29 @@ def dashboard(circle_id):
             st.subheader(kpi["Name"])
 
             curr_val, curr_growth = key_stats(kpi["id"])
-            growth_str = str(round(curr_growth, 1)) + "%"
-            st.markdown(f"""<p class="big-font">{curr_val}</p>""", unsafe_allow_html=True)
-            if curr_growth < 0:
-                st.markdown(f"""<p class="med-red-font">{growth_str}</p>""", unsafe_allow_html=True)
-            else:
-                st.markdown(f"""<p class="med-green-font">{growth_str}</p>""", unsafe_allow_html=True)
+
+            subcol1, subcol2 = st.columns(2)
+
+            with subcol1:
+                st.markdown(f"""<p class="small-font">Current value</p>""", 
+                            unsafe_allow_html=True)
+                st.markdown(f"""<p class="big-font">{curr_val}</p>""", 
+                            unsafe_allow_html=True)
+            
+            with subcol2:
+                st.markdown(f"""<p class="med-red-font"> </p>""", 
+                            unsafe_allow_html=True)
+                st.markdown(f"""<p class="small-font"> </p>""", 
+                            unsafe_allow_html=True)
+                st.write("Current growth rate")
+                if curr_growth > 0:
+                    growth_str = str(round(curr_growth, 1)) + "%"
+                    st.markdown(f"""<p class="med-green-font">&#10506;{growth_str}</p>""", 
+                                unsafe_allow_html=True)
+                else:
+                    growth_str = str(round(abs(curr_growth), 1)) + "%"
+                    st.markdown(f"""<p class="med-red-font">&#10507;{growth_str}</p>""", 
+                                unsafe_allow_html=True)
             
 
             data = generate_linechart(kpi["id"], 
