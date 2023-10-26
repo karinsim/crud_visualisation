@@ -91,26 +91,26 @@ def dashboard(circle_id):
 
             subcol1, subcol2 = st.columns(2)
 
-            with subcol1:
-                st.markdown(f"""<p class="small-font">Current value</p>""", 
-                            unsafe_allow_html=True)
-                st.markdown(f"""<p class="big-font">{curr_val}</p>""", 
-                            unsafe_allow_html=True)
+            # with subcol1:
+            st.markdown(f"""<p class="small-font">Current value</p>""", 
+                        unsafe_allow_html=True)
+            st.markdown(f"""<p class="big-font">{curr_val}</p>""", 
+                        unsafe_allow_html=True)
             
-            with subcol2:
-                st.markdown(f"""<p class="med-red-font"> </p>""", 
+            # with subcol2:
+            st.markdown(f"""<p class="med-red-font"> </p>""", 
+                        unsafe_allow_html=True)
+            st.markdown(f"""<p class="small-font"> </p>""", 
+                        unsafe_allow_html=True)
+            st.write("Current growth rate")
+            if curr_growth > 0:
+                growth_str = str(round(curr_growth, 1)) + "%"
+                st.markdown(f"""<p class="med-green-font">&#10506;{growth_str}</p>""", 
                             unsafe_allow_html=True)
-                st.markdown(f"""<p class="small-font"> </p>""", 
+            else:
+                growth_str = str(round(abs(curr_growth), 1)) + "%"
+                st.markdown(f"""<p class="med-red-font">&#10507;{growth_str}</p>""", 
                             unsafe_allow_html=True)
-                st.write("Current growth rate")
-                if curr_growth > 0:
-                    growth_str = str(round(curr_growth, 1)) + "%"
-                    st.markdown(f"""<p class="med-green-font">&#10506;{growth_str}</p>""", 
-                                unsafe_allow_html=True)
-                else:
-                    growth_str = str(round(abs(curr_growth), 1)) + "%"
-                    st.markdown(f"""<p class="med-red-font">&#10507;{growth_str}</p>""", 
-                                unsafe_allow_html=True)
             
 
             data = generate_linechart(kpi["id"], 

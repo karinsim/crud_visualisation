@@ -27,13 +27,31 @@ def generate_linechart(kpi_id, timefrom, timeto, alltime=False):
 
     if alltime:
         return history
+    
+    # apply time filters
+    history = history.loc[(history["PeriodYear"] >= timefrom[0])
+                & (history["PeriodYear"] <= timeto[0])]
+    years = list(history["PeriodYear"].unique())
+    year_from, year_to = min(years), max(years)
+    years.remove(year_from)
+    if year_from != year_to:
+        years.remove(year_to)
+    df1 = history.loc[(history["PeriodYear"] == year_from)
+                & (history["PeriodMonth"] >= timefrom[1])]
+    df2 = history.loc[(history["PeriodYear"] == year_to)
+                & (history["PeriodMonth"] <= timeto[1])]
+    df3 = history.loc[history["PeriodYear"].isin(years)]
 
-    ind_st = history.index[(history["PeriodYear"] == timefrom[0])
-                        & (history["PeriodMonth"] == timefrom[1])][0]
-    ind_end = history.index[(history["PeriodYear"] == timeto[0])
-                        & (history["PeriodMonth"] == timeto[1])][0]
+    df = pd.concat([df1, df2, df3]).sort_values(["PeriodYear", "PeriodMonth"], 
+                        ascending=True, ignore_index=True)
 
-    df = history[(history.index >= ind_st) & (history.index <= ind_end)]
+
+    # ind_st = history.index[(history["PeriodYear"] == timefrom[0])
+    #                     & (history["PeriodMonth"] == timefrom[1])][0]
+    # ind_end = history.index[(history["PeriodYear"] == timeto[0])
+    #                     & (history["PeriodMonth"] == timeto[1])][0]
+
+    # df = history[(history.index >= ind_st) & (history.index <= ind_end)]
 
     xs = generate_xlabel(df["PeriodYear"], df["PeriodMonth"])
     df["Time"] = xs
